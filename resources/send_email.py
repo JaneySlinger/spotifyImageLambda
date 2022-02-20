@@ -1,6 +1,5 @@
 import os
 import boto3
-from botocore.exceptions import ClientError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -12,9 +11,6 @@ AWS_REGION = "eu-west-1"
 
 SUBJECT = "Spotify Top Tracks Pdf"
 
-# The full path to the file that will be attached to the email.
-ATTACHMENT = "D:\Code\SpotifyLambda\/resources\mergedpdf.pdf"
-
 # The email body for recipients with non-HTML email clients.
 BODY_TEXT = "Please see the attached file for printable set of images."
 
@@ -22,7 +18,7 @@ BODY_HTML = """\
  <html>
  <head></head>
  <body>
- <h1>Hello!</h1>
+ <h1>Your top songs of the month!</h1>
  <p>Please see the attached file for a printable set of images.</p>
  </body>
  </html>
@@ -32,7 +28,7 @@ CHARSET = "utf-8"
 
 client = boto3.client('ses', region_name=AWS_REGION)
 
-def send_email():
+def send_email(attachment):
     # Create a multipart/mixed parent container.
     msg = MIMEMultipart('mixed')
     # Add subject, from and to lines.
@@ -53,12 +49,12 @@ def send_email():
     msg_body.attach(htmlpart)
 
     # Define the attachment part and encode it using MIMEApplication.
-    att = MIMEApplication(open(ATTACHMENT, 'rb').read())
+    att = MIMEApplication(open(attachment, 'rb').read())
 
     # Add a header to tell the email client to treat this part as an attachment,
     # and to give the attachment a name.
     att.add_header('Content-Disposition', 'attachment',
-                    filename=os.path.basename(ATTACHMENT))
+                    filename=os.path.basename(attachment))
 
     # Attach the multipart/alternative child container to the multipart/mixed
     # parent container.
@@ -66,21 +62,13 @@ def send_email():
 
     # Add the attachment to the parent container.
     msg.attach(att)
-    # print(msg)
-    try:
-        # Provide the contents of the email.
-        response = client.send_raw_email(
-            Source=SENDER,
-            Destinations=[
-                RECIPIENT
-            ],
-            RawMessage={
-                'Data': msg.as_string(),
-            }
-        )
-        # Display an error if something goes wrong.
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-    else:
-        print("Email sent! Message ID:"),
-        print(response['MessageId'])
+    response = client.send_raw_email(
+        Source=SENDER,
+        Destinations=[
+            RECIPIENT
+        ],
+        RawMessage={
+            'Data': msg.as_string(),
+        }
+    )
+    return response
