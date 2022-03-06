@@ -3,29 +3,29 @@ from PIL import Image
 import PIL
 from fpdf import FPDF
 import requests
-
-size = (60,60)  #works out to about 2cm
-
-def lambda_handler(event, context): 
-    urls = ["https://i.scdn.co/image/ab67616d0000b27378918dd6dc11c62e60d489e3",
-        "https://i.scdn.co/image/ab67616d0000b273ef24c3fdbf856340d55cfeb2",
-        "https://i.scdn.co/image/ab67616d0000b273a91c10fe9472d9bd89802e5a",
-        "https://i.scdn.co/image/ab67616d0000b27378918dd6dc11c62e60d489e3",
-        "https://i.scdn.co/image/ab67616d0000b273d8fac444b26ac8c2e9ff1a48"]
+import json
+def handler(event, context): 
+    print(event)
+    body = json.loads(event["body"])
+    urls = body["urls"]
     process_images(urls)
     
-    response = send_email("tmp/mergedpdf.pdf")
+    response = send_email("/tmp/mergedpdf.pdf")
     if "Error" in response:
         print(response["Error"]["Message"])
     return {
         "statusCode": 200,
         "headers": {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
         },
-        "body": "email sent"
+        "body": "Email Sent"
     }
 
 def process_images(urls):
+    size = (60,60)  #works out to about 2cm
     images_to_merge = []
     for url in urls:
         with Image.open(requests.get(url, stream=True).raw) as im:
@@ -36,9 +36,10 @@ def process_images(urls):
     for i in range(0,len(images_to_merge)):
         merged_image.paste(images_to_merge[i], (i*images_to_merge[i].size[0],0)) 
 
-    merged_image.save("tmp/merged_image.png", "PNG", quality=95,dpi=(300, 300))
+    merged_image.save("/tmp/merged_image.png", "PNG", quality=95,dpi=(300, 300))
 
     pdf1 = FPDF("P", "mm", "A4")
     pdf1.add_page()
-    pdf1.image("tmp/merged_image.png", 10,10)
-    pdf1.output("tmp/mergedpdf.pdf", "F")
+    pdf1.image("/tmp/merged_image.png", 10,10)
+    pdf1.output("/tmp/mergedpdf.pdf", "F")
+
