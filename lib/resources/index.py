@@ -34,7 +34,7 @@ def process_images(urls, size):
     images_to_merge = []
     for url in urls:
         with Image.open(requests.get(url, stream=True).raw) as im:
-            im = im.resize(size, PIL.Image.ANTIALIAS)
+            im = im.resize(size = size, resample = PIL.Image.LANCZOS)
             images_to_merge.append(im)
 
     #loop through 7 images and make a row
